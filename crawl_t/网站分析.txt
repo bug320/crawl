@@ -1,0 +1,40 @@
+1. `builtwith` 模块：
+    a. 安装: pip install builtwith
+    b. 该模块将 URL 作为参数，下载该 URL 并对其进行分析，然后返回该网站使
+用的技术。
+
+    import builtwith
+    url  ='http://www.hngp.gov.cn/henan/ggcx?appCode=H60&channelCode=0102'
+    buitlwith.parse(url)
+
+    {u'javascript-frameworks': [u'jQuery'],
+     u'miscellaneous': [u'SWFObject'],
+     u'web-servers': [u'Nginx']}
+2.`python-whois`模块：
+  对网站的所有者查询，看看是不是需要下载限速。
+  import whois
+
+In [4]: print whois.whois('hngp.gov.cn')
+{
+  "updated_date": null,
+  "status": "ok",
+  "name": null,
+  "dnssec": "unsigned",
+  "city": null,
+  "expiration_date": null,
+  "zipcode": null,
+  "domain_name": "hngp.gov.cn",
+  "country": null,
+  "whois_server": null,
+  "state": null,
+  "registrar": "\u5317\u4eac\u65b0\u7f51\u6570\u7801\u4fe1\u606f\u6280\u672f\u6709\u9650\u516c\u53f8",
+  "referral_url": null,
+  "address": null,
+  "name_servers": [
+    "ns15.xincache.com",
+    "ns16.xincache.com"
+  ],
+  "org": null,
+  "creation_date": null,
+  "emails": "henancgc@126.com"
+}
