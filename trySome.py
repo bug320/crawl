@@ -11,17 +11,6 @@ def returnMysql2():
     k = mdb.selectAll("subpage")
     for i,v in k.items():
         print i,v
-    #k = mdb.selectAll("subpage")
-    #3for i, v in k.items():
-        #print i, v
-    #i = 0
-    #if True:
-    #    #i += 1
-    #    #for i, d in enumerate(k.items()):
-    #    #   k, v = d
-    #    #    print i, k, v
-    #    #if i > 5:
-    #    #    break
     print "OK"
 def returnMysql():
     hdb=hbase_mar.HbaseClient()
@@ -45,7 +34,7 @@ def returnMysql():
     i =0
     for ii in info:
         i+=1
-        if i == 2:
+        if i == -1:
             break
         #print type(ii),ii
         #print ii["title"]
@@ -73,13 +62,30 @@ def returnMysql():
         #print "OK"
         #url = "%s%s" % (mainHTTP, urls.encode('utf-8'))
         print url
-
+        ###
+        dhtml = download(url, headers)
+        if dhtml == None:
+            print "download false"
+            break
+        soup = BeautifulSoup(dhtml, "html.parser")
+        if soup == None:
+            print "soup false"
+            break
+        saveTxt=""
+        for string in soup.stripped_strings:
+            dammit = UnicodeDammit(string)
+            # 调试输出
+            # print dammit.unicode_markup
+            saveTxt=saveTxt+"%s\n" % dammit.unicode_markup.encode('utf-8')
+        #print saveTxt
+        #print type(saveTxt)
+        ###
 
         #hdb.put("subpage","%s"%ii[c],{"page:%s"%b:"%s"%ii[b],"page:%s"%d:"%s"%ii[d].encode("utf-8"),"page%s"%h:"%s" % ii[h].encode("utf-8")})
-    #info = cur.fetchall()[0]
-    #print info["title"]
-    #for k,v in info.items():
-    #    print info[k]
+        hdb.put("subpage","%s"%ii[c],{"page:html":saveTxt})
+        pass
+
+
     cur.close()
     conn.commit()
     conn.close()
