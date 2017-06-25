@@ -20,7 +20,7 @@ DEFAULT_HEADER = {
         }
 
 # 下载延时，就是等多久下载会网页，单位是秒 
-DEFAULT_DELAY = 1
+DEFAULT_DELAY = 0
 # 当下载出错时候，遇到　5XX 错误，重新请求下载几次才停止下载　　
 DEFAULT_RETRIES = 5
 # socket 的服务请求时间
@@ -32,7 +32,7 @@ DEFAULT_LOGQUEUE = log_cache.LogQueue()
 class Downloader:
     """the class for downloader 
     """
-    def __init__(self, delay=DEFAULT_DELAY, header=DEFAULT_HEADER, proxies=None, num_retries=DEFAULT_RETRIES, timeout=DEFAULT_TIMEOUT, opener=None, cache=DEFAULT_CACHE,logqueue=DEFAULT_LOGQUEUE):
+    def __init__(self, delay=DEFAULT_DELAY, header=DEFAULT_HEADER, proxies=None, num_retries=DEFAULT_RETRIES, timeout=DEFAULT_TIMEOUT, opener=None, cache=None,logqueue=None):
         """
         initialize the `Downloader` 　　　　　　　　	
         :param delay: set the time of the de lay	

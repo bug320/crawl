@@ -8,9 +8,11 @@ from bs4 import UnicodeDammit
 import downloader
 import hbase_cache
 import dbs
-
+import shelve
 ####
 htmlparser= "html.parser"
+
+CDB = dbs.DBS()
 ####
 
 class Crawler(object):
@@ -20,70 +22,87 @@ class Crawler(object):
         self.seed_url=seed_url
         pass
     def lastURL(self,soup):
-        return urlparse.urljoin(seed_url,soup.find("li", attrs={"class": "lastPage"}).find("a")["href"].encode("utf-8"))
+        return urlparse.urljoin(self.seed_url,soup.find("li", attrs={"class": "lastPage"}).find("a")["href"].encode("utf-8")) if soup else None
         pass
     def nextURL(self,soup):
-        return urlparse.urljoin(seed_url,soup.find("li", attrs={"class": "nextPage"}).find("a")["href"].encode("utf-8"))
+        return urlparse.urljoin(self.seed_url,soup.find("li", attrs={"class": "nextPage"}).find("a")["href"].encode("utf-8")) if soup else None
         pass
     def firstURL(self,soup):
-        return urlparse.urljoin(seed_url,soup.find("li", attrs={"class": "firstPage"}).find("a")["href"].encode("utf-8"))
+        return urlparse.urljoin(self.seed_url,soup.find("li", attrs={"class": "firstPage"}).find("a")["href"].encode("utf-8")) if soup else None
         pass
-
     def getLimitURLs(self):
         """
         获取为尾页状态下的 首页连接,下一页链接,和尾页链接的 tuple
         :return: (firstUrls,nextUrl,lastUrls)
         """
-        #result =[]
-        seed_url = self.seed_url
-        download = downloader.Downloader()
-        # 下载初始网页找到尾页状态下的：首页,下一页,和尾页的 URL
         try:
-            soup = BeautifulSoup(download(seed_url),htmlparser)
-            pass
-        except Exception as e:
-            print "getPageURLs : %s ",e
-            pass
-        # 获取尾页临时尾页
-        tmpURL = self.lastURL(soup)
-        # 下载临时尾页
-        try:
+            # result =[]
+            seed_url = self.seed_url
+            download = downloader.Downloader()
+            # 下载初始网页找到尾页状态下的：首页,下一页,和尾页的 URL
+            soup = BeautifulSoup(download(seed_url), htmlparser)
+            # 获取尾页临时尾页
+            tmpURL = self.lastURL(soup)
+            # 下载临时尾页
             soup = BeautifulSoup(download(tmpURL),htmlparser)
+            # 获取尾页状态下的下一页的 url 和 页数
+            nextPageUrl = self.nextURL(soup)
+            # 获取尾页状态下的首页的 url 和 页数
+            firstPageUrl = self.firstURL(soup)
+            # 获取尾页状态下的尾页的 url 和 页数
+            lastPageURL = soup.find("li", attrs={"class": "lastPage"}).find("a")["href"].encode('utf-8')
+            lastPageURL = urlparse.urljoin(seed_url, lastPageURL)
+            return (firstPageUrl, nextPageUrl, lastPageURL)
             pass
         except Exception as e:
             print "getPageURLs : %s ",e
+            return  (None,None,None)
             pass
-        # 获取尾页状态下的下一页的 url 和 页数
-        nextPageUrl = self.nextURL(soup)
-        # 获取尾页状态下的首页的 url 和 页数
-        firstPageUrl = self.firstURL(soup)
-        # 获取尾页状态下的尾页的 url 和 页数
-        lastPageURL = soup.find("li", attrs={"class": "lastPage"}).find("a")["href"].encode('utf-8')
-        lastPageURL = urlparse.urljoin(seed_url, lastPageURL)
-        return (firstPageUrl,nextPageUrl,lastPageURL)
         pass
 
-    def getEachPageUrls(self,link,soup=None):
+    def getEachPageUrls(self,slink,soup=None):
         """
         获取link的所有目的链接,并返该租连接的列表
         :param link: 
         :return: 
         """
-        result=[]
         try:
-            soup =soup if soup else BeautifulSoup(downloader.Downloader()(link),htmlparser)
+            result = []
+            soup =soup if soup else BeautifulSoup(downloader.Downloader()(slink),htmlparser)
+            # class ="BorderBlue NoBorderTop Padding5"
+            # list2 = soup.find("div", attrs={"class": "BorderBlue NoBorderTop Padding5"}).find("div",attrs={"class": "List2"})
+            list2 = soup.find("div",attrs={"class": "List2"})
+            for a in list2.find_all('a'):
+                suburl = urlparse.urljoin(slink, a['href'].encode('utf-8'))
+                result.append(suburl)
+                # print suburl
+            return result
             pass
         except Exception as e:
             print "getEachPageUrls():",e
+            return None
             pass
-        #class ="BorderBlue NoBorderTop Padding5"
-        list2=soup.find("div",attrs={"class":"BorderBlue NoBorderTop Padding5"}).find("div",attrs={"class":"List2"})
-        for a in list2.find_all('a'):
-            suburl=urlparse.urljoin(link,a['href'].encode('utf-8'))
-            result.append(suburl)
-            #print suburl
+
+
+    def wlog(self,url):
+        fb = open("log.txt",'w')
+        fb.writelines("%s" % url)
+        fb.close()
         pass
-        return result
+    def rlog(self):
+        url = ""
+        try:
+            fb = open("log.txt", 'r')
+            url = fb.readline()
+            fb.close()
+            return url
+            pass
+        except Exception as e:
+            print "Can't open the loog:",e
+            return
+            pass
+        pass
+
 
     def getPageUrls(self,log=None,root=0):
         """
@@ -98,10 +117,7 @@ class Crawler(object):
         isRun, runTime = True, 0
         #currenturl = limtfirst
         #nexturl = None  # 这里设为 limtfirst 所以,首页会多下载一次
-        if not log:
-            currenturl,nexturl=limtfirst,limtfirst
-        else:
-            currenturl, nexturl = log,log
+        currenturl=limtfirst if not log else log
         while isRun:
             # 限制运行次数,仅作测试用,设为0 则没有强行退出
             runTime += 1
@@ -111,13 +127,40 @@ class Crawler(object):
             # loop body
             try: # 首页连续爬了两次,不过基本不影响,所以上面 runTime == root 改为了 runTime == root+1
                 print
+                #
+                pshe = shelve.open("page.she","c")
+                pshe[str(runTime)] = currenturl
+                pshe.sync()
+                pshe.close()
+
                 soup = BeautifulSoup(download(currenturl),htmlparser)  # 获取当前页的 soup
-                yield self.getEachPageUrls(currenturl,soup)            # 返回本页所有的 目的子链接
+                # #yield self.getEachPageUrls(currenturl,soup)            # 返回本页所有的 目的子链接
+                suburls = self.getEachPageUrls(slink=currenturl,soup=None)
+                if suburls != [] or suburls != None:
+                    for ii,link in enumerate(suburls):
+                        spshe = shelve.open("subpage.she", "c")
+                        id = runTime * 100 + ii
+                        spshe[str(id)] = link
+                        spshe.sync()
+                        spshe.close()
+
+                        # CDB.saveIntoMySQL(link=link,soup=None)
+                        # CDB.saveIntoMyHbase(link=link,soup=None)
+                        pass
+                    pass
+                else:
+                    self.wlog(currenturl)
+                    return
+                #     pass
                 currenturl  = self.nextURL(soup)                       # 设置新的当前页
                 pass
             except Exception as e:
                 print "In function getPageUrls(self,root):",e
+                self.wlog(currenturl)
                 return
+                pass
+            if not isRun:
+                self.wlog(currenturl)
                 pass
             pass
         return
@@ -136,6 +179,25 @@ if __name__ == "__main__":
     #  5. 在写一个　Logqueue　专门处理发生系统错误时候的记录 ,或者对 Logqueue　进行扩展,让其拥有一个新的机制来区分　系统错误　和　下载错误,对外黑盒,保持接口一致
     #
     # todo
+    try:
+        seed_url = 'http://www.hngp.gov.cn/henan/ggcx?appCode=H60&channelCode=0102'
+        # seed_url = 'http://www.hngp.gov.cn/henan/ggcx?appCode=H60&channelCode=0102&bz=0&pageSize=20&pageNo=31'
+        crawl =Crawler(seed_url)
+        crawl.getPageUrls()
+    except Exception as e:
+        print "Have the error ,",e,e.__doc__
+        ck = raw_input("Do you want to reload from the log(y/n)")
+        if ck == "y" or ck == "Y":
+            seed_url = crawl.rlog()
+            crawl = Crawler(seed_url)
+            crawl.getPageUrls()
+            pass
+        elif ck  == "n" or ck == "N":
+            print  "the cralwer is exit"
+            pass
+    print "the log end with",crawl.rlog()
+
+
 
     # seed_url = 'http://www.hngp.gov.cn/henan/ggcx?appCode=H60&channelCode=0102'
     # seed_url = 'http://www.hngp.gov.cn/henan/ggcx?appCode=H60&channelCode=0102'

@@ -10,8 +10,8 @@ import downloader
 
 #####
 htmlparser= "html.parser"
-MySQL_TABLE = "subpage2"
-HBASE_TABLE = "subpage2"
+MySQL_TABLE = "subpage21"
+HBASE_TABLE = "subpage21"
 # 提取脚本中要 innerHTML 部分的 url
 endUrlCmp=re.compile(r'\$\.get\(\"(.*\.htm)')
 # 把 innerHTML 的 url 转换成绝对 url
@@ -37,62 +37,63 @@ class DBS(object):
             self.hdb.create_table(HBASE_TABLE, "page")
         pass
 
-def saveIntoMySQL(self,link, soup=None):
-    """
-    save the info of the link to the mysql
-    :param self: 
-    :param link: 
-    :param soup: 
-    :return: 
-    """
-    save = DEFUALT_TRUE
-    if soup == None:
-        download = downloader.Downloader()
-        try:
-            soup = soup if soup else BeautifulSoup(download(link), htmlparser)
-        except Exception as e:
-            save = DEFUALT_FALSE
-    if save == DEFUALT_FALSE:
-        self.mdb.insert(MySQL_TABLE, title="", url=link, flag=str(save), hbase=DEFUALT_FALSE)
-        pass
-    else:
-        attr = []  # title=0,gongsi=1,person=2,time=3
-        # print soup.prettify()
-        attr.append(soup.find("h1", attrs={"class": "TxtCenter Padding10 BorderEEEBottom Top5"}).string.encode(
-            "utf-8"))  # class="TxtCenters
-        # attr.append(string.string for string in soup.find_all("span",attrs={"class":"Blue"}))
-        for string in soup.find_all("span", attrs={"class": "Blue"}):
-            attr.append(string.string.encode("utf-8"))
-            pass
-        # for at in attr:
-        #    print at
-        sql = "url = '%s'" % (link)
-        sql = "select title from %s where %s" % (MySQL_TABLE,sql)
-        if not self.mdb.selectSQL(MySQL_TABLE, sql):
-            # print bool(self.mdb.selectSQL(MySQL_TABLE,sql))
-            # self.mdb.execSQL(MySQL_TABLE,"set names utf8")
-            self.mdb.insert(MySQL_TABLE, url=link, title=attr[0], gongsi=attr[1], person=attr[2], time=attr[3],user=attr[4],flag=str(save), hbase=DEFUALT_FALSE)
-            pass
-        else:
-            ##print  "OK"
+    def saveIntoMySQL(self, link, soup=None):
+        """
+        save the info of the link to the mysql
+        :param self: 
+        :param link: 
+        :param soup: 
+        :return: 
+        """
+        save = DEFUALT_TRUE
+        if soup == None:
+            download = downloader.Downloader()
+            try:
+                soup = soup if soup else BeautifulSoup(download(link), htmlparser)
+            except Exception as e:
+                save = DEFUALT_FALSE
+                self.mdb.insert(MySQL_TABLE, title="", url=link, flag=str(save), hbase=DEFUALT_FALSE)
+                return
+                pass
+        if save != DEFUALT_FALSE:
+            attr = []  # title=0,gongsi=1,person=2,time=3
+            # print soup.prettify()
+            attr.append(soup.find("h1", attrs={"class": "TxtCenter Padding10 BorderEEEBottom Top5"}).string.encode(
+                "utf-8"))  # class="TxtCenters
+            # attr.append(string.string for string in soup.find_all("span",attrs={"class":"Blue"}))
+            for string in soup.find_all("span", attrs={"class": "Blue"}):
+                attr.append(string.string.encode("utf-8"))
+                pass
+            # for at in attr:
+            #    print at
             sql = "url = '%s'" % (link)
-            sql = "url = '%s'" % (link)
-            sql = "select flag from %s where %s" % (MySQL_TABLE,sql)
-            # sql = "url = '%s'" % (link[1])
-            if bool(self.mdb.selectSQL(MySQL_TABLE, sql)[0]['flag']) == DEFUALT_FALSE:
-                sql = "url = '%s'" % (link)
-                # title = attr[0], gongsi = attr[1], person = attr[2], time = attr[3], user = attr[4], flag = str(save)
-                self.mdb.update(title=attr[0], gongsi=attr[1], person=attr[2], time=attr[3], user=attr[4], flag=str(save),
-                        hbase=DEFUALT_FALSE
-                        , where=sql)
-                print "%s update into mysql" % link
+            sql = "select title from %s where %s" % (MySQL_TABLE, sql)
+            if not self.mdb.selectSQL(MySQL_TABLE, sql):
+                # print bool(self.mdb.selectSQL(MySQL_TABLE,sql))
+                # self.mdb.execSQL(MySQL_TABLE,"set names utf8")
+                self.mdb.insert(MySQL_TABLE, url=link, title=attr[0], gongsi=attr[1], person=attr[2], time=attr[3],
+                                user=attr[4], flag=str(save), hbase=DEFUALT_FALSE)
+                pass
             else:
-                print "%s have save into mysql" % link
-                # tmp = self.mdb.selectSQL(MySQL_TABLE,"select * from %s" % MySQL_TABLE)[0]
-                # for i in tmp.keys():
-                #     print i,tmp[i]
-    pass
-
+                ##print  "OK"
+                sql = "url = '%s'" % (link)
+                sql = "url = '%s'" % (link)
+                sql = "select flag from %s where %s" % (MySQL_TABLE, sql)
+                # sql = "url = '%s'" % (link[1])
+                if bool(self.mdb.selectSQL(MySQL_TABLE, sql)[0]['flag']) == DEFUALT_FALSE:
+                    sql = "url = '%s'" % (link)
+                    # title = attr[0], gongsi = attr[1], person = attr[2], time = attr[3], user = attr[4], flag = str(save)
+                    self.mdb.update(title=attr[0], gongsi=attr[1], person=attr[2], time=attr[3], user=attr[4],
+                                    flag=str(save),
+                                    hbase=DEFUALT_FALSE
+                                    , where=sql)
+                    print "%s update into mysql" % link
+                else:
+                    print "%s have save into mysql" % link
+                    # tmp = self.mdb.selectSQL(MySQL_TABLE,"select * from %s" % MySQL_TABLE)[0]
+                    # for i in tmp.keys():
+                    #     print i,tmp[i]
+        pass
     def saveIntoMyHbase(self,link, soup=None):
         """
         save the info form the MySQL into  the Hbase,it's hbave the same 'id'
@@ -145,3 +146,4 @@ def saveIntoMySQL(self,link, soup=None):
         else:
             pass
         pass
+
